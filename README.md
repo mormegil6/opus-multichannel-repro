@@ -2,7 +2,7 @@
 
 **Live check: https://mormegil6.github.io/opus-multichannel-repro/**
 
-**Filed:** Chromium issue: _(pending, link goes here once filed)_
+**Filed:** https://issues.chromium.org/issues/547065816
 
 Minimal, self-contained reproduction. With Chrome's `DirectOpusAudioDecoding`
 feature enabled, Opus audio with more than two channels fails to decode. Stereo
