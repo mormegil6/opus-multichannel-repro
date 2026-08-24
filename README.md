@@ -4,6 +4,8 @@
 
 **Filed:** https://issues.chromium.org/issues/547065816
 
+**Fixed and verified**, 2026-08-24: [verified](https://issues.chromium.org/issues/547065816#comment10) on Chrome Canary 154.0.8021.0 (macOS 26.6.1), both channel counts passing with the feature forced on and forced off. This repro page reports "not reproduced" on any build past the fix.
+
 Minimal, self-contained reproduction. With Chrome's `DirectOpusAudioDecoding` feature enabled, Opus audio with more than two channels fails to decode. Stereo Opus is unaffected, which is what makes the failure so confusing in the field: ordinary audio, ordinary video and every stereo test page keep working.
 
 Both decode paths fail:
