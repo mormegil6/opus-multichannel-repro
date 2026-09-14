@@ -1,0 +1,8 @@
+{
+  "name": "opus-multichannel-repro",
+  "private": true,
+  "description": "check.mjs drives index.html under the installed Chrome; the page itself needs nothing",
+  "devDependencies": {
+    "playwright-core": "^1.60.0"
+  }
+}

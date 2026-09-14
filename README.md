@@ -4,7 +4,7 @@
 
 **Filed:** https://issues.chromium.org/issues/547065816
 
-**Fixed and verified**, 2026-08-24: [verified](https://issues.chromium.org/issues/547065816#comment10) on Chrome Canary 154.0.8021.0 (macOS 26.6.1), both channel counts passing with the feature forced on and forced off. This repro page reports "not reproduced" on any build past the fix.
+**Fixed and verified for the originally filed case**, 2026-08-24: [verified](https://issues.chromium.org/issues/547065816#comment10) on Chrome Canary 154.0.8021.0 (macOS 26.6.1), both channel counts passing with the feature forced on and forced off, and independently reconfirmed here on 2026-09-14 against Chrome 153.0.8010.36 on Linux, the exact stable build a later report names. This repro page reports "not reproduced" on those builds. A separate, unresolved report on 1-channel Opus is open as of 2026-09-14: see Status below before assuming this page's green result closes every case.
 
 Minimal, self-contained reproduction. With Chrome's `DirectOpusAudioDecoding` feature enabled, Opus audio with more than two channels fails to decode. Stereo Opus is unaffected, which is what makes the failure so confusing in the field: ordinary audio, ordinary video and every stereo test page keep working.
 
@@ -27,9 +27,15 @@ chrome --disable-features=DirectOpusAudioDecoding --user-data-dir=/tmp/p2
 
 If the page reports the failure without you passing any flag, the feature is already enabled for your profile through the variations seed.
 
+`check.mjs` automates the three-run sweep above (default, forced on, forced off) against the installed Chrome and prints every row, which is how the "After the fix" table below was produced:
+
+```
+node check.mjs      # needs playwright-core in node_modules
+```
+
 ## Status
 
-Measured on macOS 15, Apple silicon, 2026-08-16.
+### Before the fix, measured on macOS 15, Apple silicon, 2026-08-16
 
 | Browser | Version | Feature by default | Stereo | 16-channel |
 |---|---|---|---|---|
@@ -42,6 +48,23 @@ Measured on macOS 15, Apple silicon, 2026-08-16.
 | Firefox | 153.0.4 | not applicable | passes | passes |
 
 Brave and Edge run their own variations service rather than Google's, so they are not enrolled in this trial. Force it on and they fail identically, which places the defect in Chromium rather than in Chrome's packaging of it.
+
+### After the fix, measured 2026-09-14, with a 1-channel clip added
+
+A third-party report ([issue comment #15](https://issues.chromium.org/issues/547065816#comment15)) describes the same failure shape on Chrome 153 stable and 155 Canary, on Linux, for 1-channel Opus: `isConfigSupported()` reports supported, then decode throws. The 2026-09-03 verification that closed the M153 merge request tested only the 2-channel and 16-channel rows, so a 1-channel row was never actually checked on any build. This page now embeds one (48 kHz mono, `aevalsrc` sine tone through libopus, same encode style as the other two clips; see `make-mono-asset.sh`).
+
+| Browser | Version | OS | Feature | Stereo | 16-channel | 1-channel |
+|---|---|---|---|---|---|---|
+| Chrome | 152.0.7977.76 | macOS 15.7.9 | default | passes | passes | passes |
+| Chrome | 152.0.7977.76 | macOS 15.7.9 | forced on | passes | **fails** | passes |
+| Chrome | 152.0.7977.76 | macOS 15.7.9 | forced off | passes | passes | passes |
+| Chrome | 153.0.8010.36 | Ubuntu 26.04 | default | passes | passes | passes |
+| Chrome | 153.0.8010.36 | Ubuntu 26.04 | forced on | passes | passes | passes |
+| Chrome | 153.0.8010.36 | Ubuntu 26.04 | forced off | passes | passes | passes |
+
+Two things worth separating. First, 153.0.8010.36 is the exact build named in comment #15, and here the original 16-channel failure does not reproduce even with the feature forced on, consistent with the fix having actually landed by that build on this platform (152, predating the fix, still fails it under the same forcing). Second, the 1-channel row passes everywhere it was tried, including forced on, on both platforms and both builds, which does not reproduce comment #15's report. That does not refute it: a bare sine tone may not hit whatever their real content does, and the comment describes the failure as sporadic at earlier versions before becoming consistent at 153 for them.
+
+**Update, 2026-09-14**: [comment #16](https://issues.chromium.org/issues/547065816#comment16) on the tracker independently reaches the same result. Dale Curtis, the assignee's reviewer on the original fix, ran his own mono test cases and reports them working fine, and has asked the comment #15 reporter to file a separate bug with a reproduction rather than continue on this one, since 547065816 stays scoped to the originally filed >2-channel case and stays Fixed there. This page's own measurements above were made before that comment appeared and corroborate it independently, on a different platform (macOS in addition to Linux) with a public, runnable page rather than an unshared test case.
 
 ## Why it is hard to diagnose
 
@@ -61,7 +84,9 @@ Launch Chrome with `--disable-features=DirectOpusAudioDecoding`, or use a browse
 
 ## Sample content
 
-48 kHz Opus in WebM, channel mapping family 255, at 2 and 16 channels. The same failure occurs at 25 channels. Mapping family 255 is used because the content is full-spectrum multichannel (third and fourth order Ambisonics) rather than a downmixable 5.1 or 7.1 layout.
+48 kHz Opus in WebM, channel mapping family 255, at 2 and 16 channels. The same failure occurs at 25 channels. Mapping family 255 is used because the content is full-spectrum multichannel (third and fourth order Ambisonics) rather than a downmixable 5.1 or 7.1 layout. The 2-channel and 16-channel clips have no committed generation script; they predate this repository's own convention of keeping one.
+
+The 1-channel clip added 2026-09-14 does: `make-mono-asset.sh` synthesises a 440 Hz sine tone with `aevalsrc` and encodes it with libopus at 48 kHz, matching the other two clips' sample rate and general encode style (mapping family 0, since a single channel has nothing to map). Regenerate with `./make-mono-asset.sh`, which needs only ffmpeg with the libopus encoder and prints the base64 to paste into `index.html`'s `CLIPS` array.
 
 ## Context
 
