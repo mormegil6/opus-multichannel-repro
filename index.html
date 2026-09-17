@@ -125,7 +125,11 @@ function viaMediaSource(buf) {
     v.textContent = 'REPRODUCED: stereo Opus decodes; ' + failing.map(r => r.name).join(', ') + ' fails in both paths.';
     v.style.borderColor = '#c00';
   } else {
-    v.textContent = 'Not reproduced: every buffer decoded. The feature is presumably off in this build.';
+    // Do not infer that the trial is off: since the fix, a build can have the
+    // feature ON and decode everything correctly. Saying "presumably off" told
+    // a Chromium verifier the wrong thing about their own build (issue
+    // 547065816 comment 19), which they then had to correct by hand.
+    v.textContent = 'Not reproduced: every buffer decoded. Either this build carries the fix, or the feature is off here.';
     v.style.borderColor = '#0a0';
   }
   window.__result = rows;
